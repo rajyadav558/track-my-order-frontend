@@ -4,6 +4,7 @@ import {io} from 'socket.io-client'
 import {MapContainer,TileLayer,Marker,Popup,useMap} from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 
+
 import L from 'leaflet';
 
 // Leaflet ke default broken icon paths ko theek karne ke liye code
@@ -25,33 +26,49 @@ const [position, setPosition] = useState([28.6139, 77.2090]);
 // Yeh state ek object {} hogi, jisme hum saare connected users ki live location save karenge
 const [allUsers, setAllUsers] = useState({});
 useEffect(() => {
-  
-  // 1. DATA BHEJNA (Emit): Connect hone ke BAAD hi bhejenge
-  socket.on('connect', function () {
-    console.log("connected to the server", socket.id);
+  let watchId = null;
 
-    if (navigator.geolocation) {
-      navigator.geolocation.watchPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setPosition([latitude, longitude]);
-          
-          // Connection confirm hai, ab bhejo!
-          socket.emit('send-location', { latitude, longitude }); 
-        },
-        (error) => {
-          console.log("location Error", error);
-        },
-        {
-          enableHighAccuracy: true, // Ekdum accurate GPS location ke liye
-          timeout: 5000,            // 5 seconds me check karega
-          maximumAge: 0             // Fresh data uthayega, purana nahi
+  // ⭐ FIX 1: Location maangne ka kaam sabse pehle (Socket connection se BAHAAR)
+  if (navigator.geolocation) {
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setPosition([latitude, longitude]);
+        
+        // Agar socket connected hai, toh live location bhejte raho
+        if (socket.connected) {
+          socket.emit('send-location', { latitude, longitude });
         }
-      );
+      },
+      (error) => {
+        console.log("location Error", error);
+        // Doston ko pata chal sake isliye alert
+        if (error.code === 1) {
+          alert("Bhai, setting se ya address bar ke lock icon se location permission ALLOW karo! 📍");
+        } else {
+          alert("Phone ka GPS ya Location settings check karo! 🛰️");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000, // Thoda badha diya taaki slow phones par timeout na ho
+        maximumAge: 0
+      }
+    );
+  } else {
+    alert("Bhai tumhara browser location support nahi karta, Chrome use karo!");
+  }
+
+  // ⭐ FIX 2: Socket jab bhi connect ho, apni maujuda location turant ek baar bhej de
+  socket.on('connect', () => {
+    console.log("Connected to server! ID:", socket.id);
+    // State se current position utha kar turant bhej di
+    if (position) {
+      socket.emit('send-location', { latitude: position[0], longitude: position[1] });
     }
   });
 
-  // 2. DATA SUNNA (Listen): Connect ke BAHAR, taaki duplicate na ho
+  // Data Sunna
   socket.on('receive-location', function (data) {
     const { id, latitude, longitude } = data;
     setAllUsers((prev) => ({ ...prev, [id]: [latitude, longitude] }));
@@ -65,12 +82,14 @@ useEffect(() => {
     });
   });
 
+  // Cleanup function
   return () => {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
     socket.off("connect");
     socket.off("receive-location");
     socket.off("user-disconnected");
   };
-}, []);
+}, []); // position array empty hi rahega
 
   // 🎥 Yeh component map ke camera ko naye coordinates par move karega
 const RecenterMap = ({ position }) => {
