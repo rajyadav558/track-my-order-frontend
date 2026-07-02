@@ -1,7 +1,9 @@
 import React from 'react'
 import Button from '@mui/material/Button'
 import { GrCart } from "react-icons/gr";
+import {useNavigate} from 'react-router-dom'
 const Navbar = () => {
+  var navigate = useNavigate();
   return (
    
   <div style={{}} className='h-15 w-[95%] m-6 px-2 md:px-8 flex justify-between items-center bg-white rounded-4xl'>
@@ -13,7 +15,7 @@ const Navbar = () => {
     <span>Store</span>
     <div className='flex items-center justify-around w-40'>
       <span className='h-10 w-10 flex items-center justify-center rounded-4xl' style={{border:"solid 2px #e3e3e3"}}><GrCart fontSize={20} /></span>
-    <Button style={{backgroundColor:"#597662"}} className='h-8 w-20 text-white' variant='contained'>Log in</Button>
+    <Button onClick={()=>navigate('/login')} style={{backgroundColor:"#597662"}} className='h-8 w-20 text-white' variant='contained'>Log in</Button>
     </div>
    </div>
   </div>
