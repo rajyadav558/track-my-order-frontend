@@ -2,7 +2,10 @@ import React from 'react'
 import Button from '@mui/material/Button'
 import { GrCart } from "react-icons/gr";
 import {useNavigate} from 'react-router-dom'
+import { useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 const Navbar = () => {
+  const {user, logoutUser}= useContext(AuthContext)
   var navigate = useNavigate();
   return (
    

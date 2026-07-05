@@ -1,8 +1,17 @@
 import React from 'react'
 import {TextField,Button,Grid} from '@mui/material'
 import {FormControl,FormControlLabel,FormLabel,RadioGroup,Radio} from '@mui/material'
+import { useContext } from 'react'
+import { AuthContext } from '../../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
+import { postDATA } from '../../FetchBackend'
+
 
 const Signup = () => {
+
+  const {loginUser}= useContext(AuthContext)
+  const navigate = useNavigate()
+
   const [Name,setName] = React.useState("")
   const [email,setEmail] = React.useState("")
   const [password,setPassword] = React.useState("")
@@ -15,6 +24,47 @@ const Signup = () => {
       setError((prev)=>{return({...prev,[field]:value})})
       console.log("Error",error)
   }
+
+  const handleSubmit = async()=>{
+    if(!Name){
+      handleError("Name","Name is required")
+      return
+    }
+    else if(!email){
+      handleError("email","Email is required")
+      return
+    }
+    else if(!password || password.length<6){ 
+      handleError("password","Password must have 6 characters")
+      return
+    }
+
+    try{
+      const data = {name:Name,email,password,role}
+      const response = await postDATA('api/register',data)
+      if(response.user){
+        loginUser(response.user, response.token);
+        // Role ke mutabik user ko direct dhakka diya sahi page par
+        if (response.user.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else if (response.user.role === 'driver') {
+          navigate('/driver-dashboard');
+        } else {
+          navigate('/store'); // Normal customer store par jayega
+        }
+      } else {
+        // Agar backend error error response de (jaise email exists)
+        setError((prev) => ({ ...prev, email: response?.error || "Kuch gadbad hui!" }));
+      }
+      }
+      catch(err){
+           console.error("Signup frontend crash error:", err);
+      }
+      
+    }
+
+
+  
 
   return (
     <div className='h-screen w-screen flex md:flex-row flex-col'>
@@ -45,9 +95,9 @@ const Signup = () => {
               <Grid size={12}>
                 <FormControl>
                   <FormLabel >Choose Role</FormLabel>
-                  <RadioGroup defaultValue="customer" name="radio-buttons-group" row>
-                    <FormControlLabel value="customer" onClick={(e)=>setRole('customer')} control={<Radio/>} label="customer"/>
-                    <FormControlLabel value="driver" onClick={(e)=>setRole('driver')} control={<Radio/>} label="Delivery Man"/>
+                  <RadioGroup defaultValue="customer" onChange={(e)=>setRole(e.target.value)} value={role}  name="radio-buttons-group" row>
+                    <FormControlLabel value="customer" control={<Radio/>} label="customer"/>
+                    <FormControlLabel value="driver" control={<Radio/>} label="Delivery Man"/>
                   </RadioGroup>
                 </FormControl>
               </Grid>
@@ -60,7 +110,7 @@ const Signup = () => {
                 <TextField onFocus={()=>handleError("password","")} helperText={error.password} error={error.password} fullWidth label="Password" variant="outlined" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} />
               </Grid>
               <Grid size={12}>
-                <Button fullWidth variant='contained' style={{backgroundColor:"#00A76F"}}>Login</Button>
+                <Button onClick={handleSubmit} fullWidth variant='contained' style={{backgroundColor:"#00A76F"}}>Sign UP</Button>
               </Grid>
             </Grid>
            </div>
