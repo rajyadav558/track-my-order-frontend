@@ -50,7 +50,7 @@ const Signup = () => {
         } else if (response.user.role === 'driver') {
           navigate('/driver-dashboard');
         } else {
-          navigate('/store'); // Normal customer store par jayega
+          navigate('/homepage'); // Normal customer store par jayega
         }
       } else {
         // Agar backend error error response de (jaise email exists)
