@@ -1,8 +1,12 @@
 import React from 'react'
 import {TextField,Button,Grid} from '@mui/material'
 import {useNavigate} from 'react-router-dom'
+import { postDATA } from '../../FetchBackend'
+import { useContext } from 'react'
+import { AuthContext } from '../../context/AuthContext'
 
 const Login = () => {
+  const {loginUser}= useContext(AuthContext)
   const navigate = useNavigate()
   const [email,setEmail] = React.useState("")
   const [password,setPassword] = React.useState("")
@@ -13,6 +17,37 @@ const Login = () => {
   const handleError = (field,value)=>{
       setError((prev)=>{return({...prev,[field]:value})})
       console.log("Error",error)
+  }
+
+  const handleSubmit = async()=>{
+    if(!email){
+      handleError("email","Email is required")
+      return
+    }
+    if(!password){
+      handleError("password","Password is required")
+      return
+    }
+    try{
+      const data = {email,password};
+      var response = await postDATA('api/login',data)
+      if(response.user){
+        loginUser(response.user, response.token)
+      }
+       // Role ke mutabik user ko direct dhakka diya sahi page par
+        if (response.user.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else if (response.user.role === 'driver') {
+          navigate('/driver-dashboard');
+        } else {
+          navigate('/homepage'); // Normal customer store par jayega
+        }
+
+    }
+    catch(err){
+      console.error("Login mein error aaya ❌:", err.message);
+    }
+
   }
 
   return (
@@ -45,7 +80,7 @@ const Login = () => {
                 <TextField onFocus={()=>handleError("password","")} helperText={error.password} error={error.password} fullWidth label="Password" variant="outlined" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} />
               </Grid>
               <Grid size={12}>
-                <Button fullWidth variant='contained' style={{backgroundColor:"#00A76F"}}>Login</Button>
+                <Button onClick={handleSubmit} fullWidth variant='contained' style={{backgroundColor:"#00A76F"}}>Login</Button>
               </Grid>
             </Grid>
            </div>
